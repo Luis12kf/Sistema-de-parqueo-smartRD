@@ -1,0 +1,1 @@
+C:\Users\Luis Manuel\source\repos\ParkSmartRD\ParkSmartRD\ParkSmartRD.Client\obj\Debug\net9.0\staticwebassets.build.json

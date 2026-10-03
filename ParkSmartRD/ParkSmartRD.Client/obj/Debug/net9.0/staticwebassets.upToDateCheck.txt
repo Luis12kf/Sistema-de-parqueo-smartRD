@@ -1,0 +1,4 @@
+wwwroot\appsettings.Development.json
+wwwroot\appsettings.json
+C:\Users\Luis Manuel\source\repos\ParkSmartRD\ParkSmartRD\ParkSmartRD.Client\wwwroot\appsettings.Development.json
+C:\Users\Luis Manuel\source\repos\ParkSmartRD\ParkSmartRD\ParkSmartRD.Client\wwwroot\appsettings.json
