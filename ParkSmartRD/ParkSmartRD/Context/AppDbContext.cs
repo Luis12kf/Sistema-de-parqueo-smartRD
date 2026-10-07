@@ -10,5 +10,6 @@ namespace ParkSmartRD.Context
         {
         }
         //Se necesita apregar las entidades de modelos
+
     }
 }
