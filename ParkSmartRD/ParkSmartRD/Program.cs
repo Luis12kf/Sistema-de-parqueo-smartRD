@@ -3,6 +3,9 @@ using ParkSmartRD.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
+//ContionString del .Json
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection"); 
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents();
