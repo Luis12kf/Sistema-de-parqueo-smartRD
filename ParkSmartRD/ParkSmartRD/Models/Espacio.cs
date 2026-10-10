@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ParkSmartRD.Services
+namespace ParkSmartRD.Models
 {
     public class Espacio
     {
@@ -13,6 +13,6 @@ namespace ParkSmartRD.Services
         public int NivelId { get; set; }
 
         [MaxLength(10)]
-        public String? Estado { get; set; }
+        public string? Estado { get; set; }
     }
 }
