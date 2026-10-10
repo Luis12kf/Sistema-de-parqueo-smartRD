@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ParkSmartRD.Services
+namespace ParkSmartRD.Models
 {
     public class Tarifa
     {
