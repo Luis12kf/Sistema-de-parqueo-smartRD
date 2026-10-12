@@ -1,7 +1,33 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+@page "/menu"
+@rendermode InteractiveServer
 
-<h1>Hello, world!</h1>
+<h3>Bienvenido, Cajero Turno Mañana</h3>
 
-Welcome to your new app.
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card-stat card-teal"><h2>@espaciosLibres / @espaciosTotal</h2><p>Espacios Libres</p></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card-stat card-purple"><h2>@vehiculosDentro</h2><p>Vehículos Dentro</p></div>
+    </div>
+    <div class="col-md-4">
+        <div class="card-stat card-teal"><h2>RD$ @ingresosHoy.ToString("N2")</h2><p>Ingresos de Hoy</p></div>
+    </div>
+</div>
+
+<h5 class="mt-4">Accesos rápidos</h5>
+<div class="d-flex gap-2 mt-2">
+    <a href="/registrar-entrada" class="btn btn-outline-primary">Registrar Entrada</a>
+    <a href="/registrar-salida" class="btn btn-outline-secondary">Registrar Salida</a>
+    <a href="/disponibilidad" class="btn btn-outline-success">Ver Disponibilidad</a>
+</div>
+
+@code {
+    // TODO: reemplazar por consultas reales al DbContext
+    private int espaciosLibres = 87;
+    private int espaciosTotal = 150;
+    private int vehiculosDentro = 63;
+    private decimal ingresosHoy = 4250.00m;
+}

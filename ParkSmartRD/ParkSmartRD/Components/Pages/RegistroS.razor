@@ -1,0 +1,74 @@
+﻿@page "/registrar-salida"
+@rendermode InteractiveServer
+
+<h3>Registrar Salida y Cobrar</h3>
+
+<div class="card-form">
+    <label>Placa o número de tiquet</label>
+    <input class="form-control mb-3" @bind="dato" placeholder="Ej: A123456" />
+    <button class="btn btn-primary" @onclick="Buscar">Buscar</button>
+
+    @if (encontrado)
+    {
+        <div class="mt-3">
+            <p><strong>Hora de entrada:</strong> @horaEntrada.ToString("hh:mm tt")</p>
+            <p><strong>Tiempo transcurrido:</strong> @((int)tiempo.TotalHours)h @tiempo.Minutes min</p>
+            <h4 class="text-success">Total a cobrar: RD$ @monto.ToString("N2")</h4>
+            <button class="btn btn-success mt-2" @onclick="ConfirmarPago">Confirmar Pago</button>
+        </div>
+    }
+
+    @if (mensajeExito is not null) { <div class="alert alert-success mt-3">@mensajeExito</div> }
+    @if (mensajeError is not null) { <div class="alert alert-danger mt-3">@mensajeError</div> }
+</div>
+
+@code {
+    // TODO: leer estos valores de la tabla Tarifa
+    private const decimal PrimeraHora = 50m;
+    private const decimal HoraAdicional = 25m;
+    private const decimal MaximaDiaria = 400m;
+
+    private string dato = string.Empty;
+    private bool encontrado;
+    private DateTime horaEntrada;
+    private TimeSpan tiempo;
+    private decimal monto;
+    private string? mensajeExito;
+    private string? mensajeError;
+
+    private void Buscar()
+    {
+        mensajeExito = null;
+        mensajeError = null;
+        encontrado = false;
+
+        if (string.IsNullOrWhiteSpace(dato))
+        {
+            mensajeError = "Debe ingresar la placa o el número de tiquet.";
+            return;
+        }
+
+        // TODO: buscar el RegistroParqueo activo en la base de datos.
+        // Por ahora se simula un vehículo que entró hace 2h 10min.
+        horaEntrada = DateTime.Now.AddMinutes(-130);
+        tiempo = DateTime.Now - horaEntrada;
+        monto = CalcularMonto(tiempo);
+        encontrado = true;
+    }
+
+    private void ConfirmarPago()
+    {
+        // TODO: guardar la Transaccion, cerrar el registro y liberar el espacio
+        mensajeExito = $"Pago de RD$ {monto:N2} registrado. Espacio liberado.";
+        encontrado = false;
+        dato = string.Empty;
+    }
+
+    private static decimal CalcularMonto(TimeSpan t)
+    {
+        int horas = (int)Math.Ceiling(t.TotalHours);
+        if (horas <= 0) horas = 1;
+        decimal total = PrimeraHora + (horas > 1 ? (horas - 1) * HoraAdicional : 0);
+        return Math.Min(total, MaximaDiaria);
+    }
+}

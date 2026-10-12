@@ -1,0 +1,36 @@
+﻿@page "/registrar-entrada"
+@rendermode InteractiveServer
+
+<h3>Registrar Entrada de Vehículo</h3>
+
+<div class="card-form">
+    <label>Placa del vehículo</label>
+    <input class="form-control mb-3" @bind="placa" placeholder="Ej: A123456" />
+    <button class="btn btn-outline-success" @onclick="RegistrarEntrada">Registrar Entrada</button>
+
+    @if (mensajeExito is not null) { <div class="alert alert-success mt-3">@mensajeExito</div> }
+    @if (mensajeError is not null) { <div class="alert alert-danger mt-3">@mensajeError</div> }
+</div>
+
+@code {
+    private string placa = string.Empty;
+    private string? mensajeExito;
+    private string? mensajeError;
+
+    private void RegistrarEntrada()
+    {
+        mensajeExito = null;
+        mensajeError = null;
+
+        if (string.IsNullOrWhiteSpace(placa))
+        {
+            mensajeError = "Debe ingresar la placa del vehículo.";
+            return;
+        }
+
+        // TODO: reemplazar por el servicio real:
+        // buscar espacio libre, crear RegistroParqueo y marcar el espacio como Ocupado
+        mensajeExito = $"Placa {placa.ToUpper().Trim()} registrada. Espacio asignado: Nivel 2 — Espacio 14. Hora: {DateTime.Now:hh:mm tt}";
+        placa = string.Empty;
+    }
+}

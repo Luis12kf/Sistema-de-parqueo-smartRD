@@ -1,0 +1,30 @@
+﻿@page "/disponibilidad"
+@rendermode InteractiveServer
+
+<h3>Disponibilidad de Espacios</h3>
+
+<div class="row mt-4">
+    @foreach (var n in niveles)
+    {
+        <div class="col-md-4">
+            <div class="card-stat @(n.Ocupados < 40 ? "card-teal" : "card-purple")">
+                <h5>@n.Nombre</h5>
+                <h2>@(n.Total - n.Ocupados)</h2>
+                <p>espacios libres</p>
+                <small>@n.Ocupados / @n.Total ocupados</small>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private record Nivel(string Nombre, int Ocupados, int Total);
+
+    // TODO: calcular desde las tablas Nivel y Espacio
+    private List<Nivel> niveles = new()
+    {
+        new("Nivel 1", 12, 50),
+        new("Nivel 2", 31, 50),
+        new("Nivel 3", 44, 50),
+    };
+}

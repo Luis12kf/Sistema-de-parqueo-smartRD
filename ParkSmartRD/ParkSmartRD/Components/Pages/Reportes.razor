@@ -1,0 +1,60 @@
+﻿@page "/generar-reportes"
+@rendermode InteractiveServer
+
+<h3>Generar Reportes</h3>
+
+<div class="card-form">
+    <div class="row">
+        <div class="col">
+            <label>Desde</label>
+            <input class="form-control" type="date" @bind="desde" />
+        </div>
+        <div class="col">
+            <label>Hasta</label>
+            <input class="form-control" type="date" @bind="hasta" />
+        </div>
+    </div>
+    <button class="btn btn-success mt-3" @onclick="Generar">Generar</button>
+</div>
+
+@if (generado)
+{
+    <div class="row mt-4">
+        <div class="col-md-4"><div class="card-stat card-teal"><h2>RD$ @total.ToString("N2")</h2><p>Ingresos totales</p></div></div>
+        <div class="col-md-4"><div class="card-stat card-purple"><h2>@filas.Count</h2><p>Vehículos atendidos</p></div></div>
+        <div class="col-md-4"><div class="card-stat card-teal"><h2>1h 48min</h2><p>Estadía promedio</p></div></div>
+    </div>
+
+    <table class="table table-striped mt-4">
+        <thead><tr><th>Fecha</th><th>Placa</th><th>Monto</th></tr></thead>
+        <tbody>
+            @foreach (var f in filas)
+            {
+                <tr><td>@f.Fecha.ToString("dd/MM/yyyy hh:mm tt")</td><td>@f.Placa</td><td>RD$ @f.Monto.ToString("N2")</td></tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private DateTime desde = DateTime.Today.AddDays(-30);
+    private DateTime hasta = DateTime.Today;
+    private bool generado;
+    private decimal total;
+    private List<Fila> filas = new();
+
+    private record Fila(DateTime Fecha, string Placa, decimal Monto);
+
+    private void Generar()
+    {
+        // TODO: consultar la tabla Transaccion entre 'desde' y 'hasta'
+        filas = new()
+        {
+            new(DateTime.Now.AddHours(-5), "A123456", 100m),
+            new(DateTime.Now.AddHours(-3), "B987654", 75m),
+            new(DateTime.Now.AddHours(-1), "C456789", 150m),
+        };
+        total = filas.Sum(f => f.Monto);
+        generado = true;
+    }
+}
