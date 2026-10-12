@@ -1,9 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ParkSmartRD.Models
+namespace ParkSmartRD.ComponetModel.Models
 {
     public class Nivel
     {
+        [Key]
         public int NivelId { get; set; }
         [Required]
         [MaxLength(50)]

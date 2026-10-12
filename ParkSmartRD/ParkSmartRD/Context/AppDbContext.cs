@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-//Falta un Using para modelos
+using ParkSmartRD.ComponetModel.Models;
 
 namespace ParkSmartRD.Context
 {
@@ -10,6 +10,13 @@ namespace ParkSmartRD.Context
         {
         }
         //Se necesita apregar las entidades de modelos
+        public DbSet<Espacio> Espacios { get; set; }
+        public DbSet<Nivel> Niveles { get; set; }
+        public DbSet<RegistraEntrada> RegistraEntradas { get; set; }
+        public DbSet<RegistraSalida> RegistraSalidas { get; set; }
+        public DbSet<Tarifa> Tarifas { get; set; }
+        public DbSet<Transaccion> Transacciones { get; set; }
+        public DbSet<Usuario> Usuarios { get; set; }
 
     }
 }

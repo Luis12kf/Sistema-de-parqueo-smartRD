@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 
-namespace ParkSmartRD.Models
+namespace ParkSmartRD.ComponetModel.Models
 {
     public class Usuario
     {
+        [Key]
         public int UsuarioID { get; set; }
 
         [Required]
