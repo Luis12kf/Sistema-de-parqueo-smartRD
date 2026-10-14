@@ -5,23 +5,12 @@ namespace ParkSmartRD.ComponetModel.Models
 {
     public class RegistraEntrada
     {
-        [Key]
-        public int EntradaID { get; set; }
-
-        [Required]
-        public int EspacioID { get; set; }
-
-        [Required]
-      public DateOnly HoraEntrada { get; set; }
-
-        [Required]
-        [MaxLength(100)]
-        public string? NombreClinete {  get; set; }
-
-        [Required]
-        [MaxLength (50)]
-        public string? Placa {  get; set; }
-
-        public bool? Estado { get; set;}
+        public int EntradaId { get; set; }
+        public int EspacioId { get; set; }
+        public Espacio? Espacio { get; set; }
+        public DateTime HoraEntrada { get; set; } = DateTime.Now;
+        public string? NombreCliente { get; set; }
+        public string Placa { get; set; } = string.Empty;
+        public bool Estado { get; set; } = true;          // true = el vehículo sigue dentro
     }
 }

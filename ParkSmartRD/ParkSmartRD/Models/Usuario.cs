@@ -5,25 +5,11 @@ namespace ParkSmartRD.ComponetModel.Models
 {
     public class Usuario
     {
-        [Key]
-        public int UsuarioID { get; set; }
-
-        [Required]
-        [MaxLength(50)]
-        public string ? NombreUsuario { get; set; }
-
-        [Required]
-        [MaxLength(100)]
-        public string ? NombreCompleto { get; set; }
-
-        [Required]
-        [MaxLength(256)]
-        public string ? ContrasenaHash {  get; set; }
-
-        [Required]
-        [MaxLength(20)]
-        public string ? Rol {  get; set; }
-
-        public bool Activo {  get; set; }
+        public int UsuarioId { get; set; }
+        public string NombreUsuario { get; set; } = string.Empty;
+        public string ContrasenaHash { get; set; } = string.Empty;
+        public string NombreCompleto { get; set; } = string.Empty;
+        public string Rol { get; set; } = "Cajero";      // Cajero | Administrador
+        public bool Activo { get; set; } = true;
     }
 }

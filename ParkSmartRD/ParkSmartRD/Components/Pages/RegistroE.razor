@@ -1,36 +1,110 @@
 ﻿@page "/registrar-entrada"
 @rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using ParkSmartRD.Context
+@using ParkSmartRD.ComponetModel.Models
+@inject AppDbContext Db
 
 <h3>Registrar Entrada de Vehículo</h3>
 
 <div class="card-form">
     <label>Placa del vehículo</label>
-    <input class="form-control mb-3" @bind="placa" placeholder="Ej: A123456" />
-    <button class="btn btn-outline-success" @onclick="RegistrarEntrada">Registrar Entrada</button>
+    <input class="form-control mb-3" @bind="placa" placeholder="Ej: A123456" maxlength="10" />
 
-    @if (mensajeExito is not null) { <div class="alert alert-success mt-3">@mensajeExito</div> }
-    @if (mensajeError is not null) { <div class="alert alert-danger mt-3">@mensajeError</div> }
+    <label>Nombre del cliente (opcional)</label>
+    <input class="form-control mb-3" @bind="nombreCliente" maxlength="100" />
+
+    <button class="btn btn-primary" @onclick="RegistrarEntrada" disabled="@procesando">
+        Registrar Entrada
+    </button>
+
+    @if (mensajeError is not null)
+    {
+        <div class="alert alert-danger mt-3">@mensajeError</div>
+    }
+
+    @if (tiquet is not null)
+    {
+        <div class="alert alert-success mt-3">
+            <h5 class="mb-2">Tiquet de entrada N° @tiquet.EntradaId.ToString("D6")</h5>
+            <p class="mb-1"><strong>Placa:</strong> @tiquet.Placa</p>
+            <p class="mb-1"><strong>Ubicación:</strong> @nombreNivel — Espacio @tiquet.Espacio?.Numero</p>
+            <p class="mb-0"><strong>Hora de entrada:</strong> @tiquet.HoraEntrada.ToString("dd/MM/yyyy hh:mm tt")</p>
+        </div>
+    }
 </div>
 
 @code {
     private string placa = string.Empty;
-    private string? mensajeExito;
+    private string nombreCliente = string.Empty;
     private string? mensajeError;
+    private RegistraEntrada? tiquet;
+    private string nombreNivel = string.Empty;
+    private bool procesando;
 
-    private void RegistrarEntrada()
+    private async Task RegistrarEntrada()
     {
-        mensajeExito = null;
         mensajeError = null;
+        tiquet = null;
 
-        if (string.IsNullOrWhiteSpace(placa))
+        var placaLimpia = placa.Trim().ToUpper();
+        if (string.IsNullOrWhiteSpace(placaLimpia))
         {
             mensajeError = "Debe ingresar la placa del vehículo.";
             return;
         }
 
-        // TODO: reemplazar por el servicio real:
-        // buscar espacio libre, crear RegistroParqueo y marcar el espacio como Ocupado
-        mensajeExito = $"Placa {placa.ToUpper().Trim()} registrada. Espacio asignado: Nivel 2 — Espacio 14. Hora: {DateTime.Now:hh:mm tt}";
-        placa = string.Empty;
+        procesando = true;
+        try
+        {
+            // 1. ¿El vehículo ya está dentro?
+            bool yaDentro = await Db.RegistraEntradas
+                .AnyAsync(r => r.Placa == placaLimpia && r.Estado);
+            if (yaDentro)
+            {
+                mensajeError = "Este vehículo ya se encuentra dentro del parqueo.";
+                return;
+            }
+
+            // 2. Primer espacio libre (por nivel y número)
+            var espacio = await Db.Espacios
+                .Include(e => e.Nivel)
+                .Where(e => e.Estado == "Libre")
+                .OrderBy(e => e.NivelId).ThenBy(e => e.Numero)
+                .FirstOrDefaultAsync();
+            if (espacio is null)
+            {
+                mensajeError = "Parqueo lleno. No hay espacios disponibles.";
+                return;
+            }
+
+            // 3. Crear el registro y ocupar el espacio
+            var registro = new RegistraEntrada
+            {
+                EspacioId = espacio.EspacioId,
+                Placa = placaLimpia,
+                NombreCliente = string.IsNullOrWhiteSpace(nombreCliente) ? null : nombreCliente.Trim(),
+                HoraEntrada = DateTime.Now,
+                Estado = true
+            };
+            espacio.Estado = "Ocupado";
+
+            Db.RegistraEntradas.Add(registro);
+            await Db.SaveChangesAsync();
+
+            registro.Espacio = espacio;
+            tiquet = registro;
+            nombreNivel = espacio.Nivel?.Nombre ?? $"Nivel {espacio.NivelId}";
+            placa = string.Empty;
+            nombreCliente = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "No se pudo registrar la entrada: " + (ex.InnerException?.Message ?? ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
     }
 }

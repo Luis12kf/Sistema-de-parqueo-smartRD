@@ -2,6 +2,9 @@
 
 @page "/menu"
 @rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using ParkSmartRD.Context
+@inject AppDbContext Db
 
 <h3>Bienvenido, Cajero Turno Mañana</h3>
 
@@ -25,9 +28,18 @@
 </div>
 
 @code {
-    // TODO: reemplazar por consultas reales al DbContext
-    private int espaciosLibres = 87;
-    private int espaciosTotal = 150;
-    private int vehiculosDentro = 63;
-    private decimal ingresosHoy = 4250.00m;
+    private int espaciosLibres;
+    private int espaciosTotal;
+    private int vehiculosDentro;
+    private decimal ingresosHoy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        espaciosTotal = await Db.Espacios.CountAsync();
+        espaciosLibres = await Db.Espacios.CountAsync(e => e.Estado == "Libre");
+        vehiculosDentro = await Db.RegistraEntradas.CountAsync(r => r.Estado);
+        ingresosHoy = await Db.Transacciones
+            .Where(t => t.FechaHora >= DateTime.Today)
+            .SumAsync(t => (decimal?)t.Monto) ?? 0;
+    }
 }

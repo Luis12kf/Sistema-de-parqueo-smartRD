@@ -5,14 +5,10 @@ namespace ParkSmartRD.ComponetModel.Models
 {
     public class RegistraSalida
     {
-        [Key]
-        public int SalidaID { get; set; }
-
-        public int EntradaID { get; set; }
-
-        [Required]
-        public DateOnly HoraSalidad {  get; set; }
-
-
+        public int SalidaId { get; set; }
+        public int? EntradaId { get; set; }
+        public RegistraEntrada? Entrada { get; set; }
+        public DateTime HoraSalida { get; set; } = DateTime.Now;   // columna: HoraSalidad
     }
+
 }

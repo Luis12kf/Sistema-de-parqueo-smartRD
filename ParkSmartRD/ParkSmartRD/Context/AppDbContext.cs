@@ -18,5 +18,29 @@ namespace ParkSmartRD.Context
         public DbSet<Transaccion> Transacciones { get; set; }
         public DbSet<Usuario> Usuarios { get; set; }
 
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Nivel>().ToTable("Nivel");
+            modelBuilder.Entity<Espacio>().ToTable("Espacio");
+            modelBuilder.Entity<Usuario>().ToTable("Usuario");
+            modelBuilder.Entity<Tarifa>().ToTable("Tarifa");
+            modelBuilder.Entity<Transaccion>().ToTable("Transaccion");
+
+            modelBuilder.Entity<RegistraEntrada>(e =>
+            {
+                e.ToTable("RegistraEntrada");
+                e.HasKey(x => x.EntradaId);
+            });
+
+            modelBuilder.Entity<RegistraSalida>(e =>
+            {
+                e.ToTable("RegistraSalida");
+                e.HasKey(x => x.SalidaId);
+                e.Property(x => x.HoraSalida).HasColumnName("HoraSalidad");
+            });
+        }
+
     }
+
+
 }

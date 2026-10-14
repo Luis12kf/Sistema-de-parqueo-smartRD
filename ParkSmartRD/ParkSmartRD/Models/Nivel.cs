@@ -5,12 +5,8 @@ namespace ParkSmartRD.ComponetModel.Models
 {
     public class Nivel
     {
-        [Key]
         public int NivelId { get; set; }
-        [Required]
-        [MaxLength(50)]
-        public string ? Nombre {  get; set; }
-        [Required]
+        public string Nombre { get; set; } = string.Empty;
         public int Capacidad { get; set; }
     }
 }

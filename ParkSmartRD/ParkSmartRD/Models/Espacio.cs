@@ -5,16 +5,10 @@ namespace ParkSmartRD.ComponetModel.Models
 {
     public class Espacio
     {
-        [Key]
         public int EspacioId { get; set; }
-
-        [Required]
-        public int  Numero {  get; set; }
-
-        [Required]
+        public int Numero { get; set; }
         public int NivelId { get; set; }
-
-        [MaxLength(10)]
-        public string? Estado { get; set; }
+        public Nivel? Nivel { get; set; }
+        public string Estado { get; set; } = "Libre";   // Libre | Ocupado
     }
 }

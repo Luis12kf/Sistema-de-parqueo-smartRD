@@ -5,22 +5,14 @@ namespace ParkSmartRD.ComponetModel.Models
 {
     public class Transaccion
     {
-        [Key]
         public int TransaccionId { get; set; }
-
-        [Required]
-        public int EntradaID { get; set; }
-
-        [Required]
+        public int EntradaId { get; set; }
+        public RegistraEntrada? Entrada { get; set; }
         public int TarifaId { get; set; }
-
-        [Required]
-        public int UsuarioId {  get; set; }
-
-        [Required]
-        public decimal Monto {  get; set; }
-
-        [Required]
-        public DateOnly FechaHora { get; set; }
+        public Tarifa? Tarifa { get; set; }
+        public int UsuarioId { get; set; }
+        public Usuario? Usuario { get; set; }
+        public decimal Monto { get; set; }
+        public DateTime FechaHora { get; set; } = DateTime.Now;
     }
 }
