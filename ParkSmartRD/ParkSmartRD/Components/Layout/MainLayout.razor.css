@@ -96,3 +96,23 @@ main {
         right: 0.75rem;
         top: 0.5rem;
     }
+
+.page {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 260px;
+    background-color: #2C2660;
+    flex-shrink: 0;
+}
+
+main {
+    flex: 1;
+    background-color: #ffffff;
+}
+
+.content {
+    padding-top: 2rem;
+}

@@ -58,3 +58,46 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.card-stat {
+    border-radius: 10px;
+    padding: 1.2rem;
+    text-align: center;
+    border: 1px solid;
+}
+
+.card-teal {
+    background-color: #E1F5EE;
+    border-color: #0F6E56;
+    color: #0F6E56;
+}
+
+.card-purple {
+    background-color: #EEEDFE;
+    border-color: #534AB7;
+    color: #534AB7;
+}
+
+.card-stat h2 {
+    margin-bottom: 0.2rem;
+}
+
+.card-stat p {
+    margin: 0;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+.card-form {
+    background-color: #EEEDFE;
+    border: 1px solid #534AB7;
+    border-radius: 10px;
+    padding: 1.5rem;
+    max-width: 520px;
+    margin-top: 1rem;
+}
+
+    .card-form label {
+        font-weight: 600;
+        margin-bottom: 0.2rem;
+    }
