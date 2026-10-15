@@ -1,30 +1,57 @@
 ﻿@page "/disponibilidad"
 @rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using ParkSmartRD.Context
+@using ParkSmartRD.ComponetModel.Models
+@inject AppDbContext Db
 
 <h3>Disponibilidad de Espacios</h3>
+<button class="btn btn-outline-primary btn-sm mb-2" @onclick="Cargar">Actualizar</button>
 
-<div class="row mt-4">
-    @foreach (var n in niveles)
-    {
-        <div class="col-md-4">
-            <div class="card-stat @(n.Ocupados < 40 ? "card-teal" : "card-purple")">
-                <h5>@n.Nombre</h5>
-                <h2>@(n.Total - n.Ocupados)</h2>
-                <p>espacios libres</p>
-                <small>@n.Ocupados / @n.Total ocupados</small>
+@if (grupos is null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="row mt-3">
+        @foreach (var g in grupos)
+        {
+            var total = g.Count();
+            var libres = g.Count(e => e.Estado == "Libre");
+
+            <div class="col-md-4 mb-4">
+                <div class="card-stat @(libres > total * 0.2 ? "card-teal" : "card-purple")">
+                    <h5>@g.Key</h5>
+                    <h2>@libres</h2>
+                    <p>espacios libres</p>
+                    <small>@(total - libres) / @total ocupados</small>
+                </div>
+                <div class="espacios-grid mt-2">
+                    @foreach (var e in g.OrderBy(x => x.Numero))
+                    {
+                        <span class="espacio @(e.Estado == "Libre" ? "espacio-libre" : "espacio-ocupado")"
+                              title="Espacio @e.Numero">@e.Numero</span>
+                    }
+                </div>
             </div>
-        </div>
-    }
-</div>
+        }
+    </div>
+}
 
 @code {
-    private record Nivel(string Nombre, int Ocupados, int Total);
+    private List<IGrouping<string, Espacio>>? grupos;
 
-    // TODO: calcular desde las tablas Nivel y Espacio
-    private List<Nivel> niveles = new()
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    private async Task Cargar()
     {
-        new("Nivel 1", 12, 50),
-        new("Nivel 2", 31, 50),
-        new("Nivel 3", 44, 50),
-    };
+        var lista = await Db.Espacios
+            .AsNoTracking()
+            .Include(e => e.Nivel)
+            .OrderBy(e => e.NivelId).ThenBy(e => e.Numero)
+            .ToListAsync();
+
+        grupos = lista.GroupBy(e => e.Nivel?.Nombre ?? $"Nivel {e.NivelId}").ToList();
+    }
 }

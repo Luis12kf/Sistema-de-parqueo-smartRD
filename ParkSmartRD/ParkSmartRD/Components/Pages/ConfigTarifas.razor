@@ -1,19 +1,35 @@
 ﻿@page "/configurar-tarifas"
 @rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using ParkSmartRD.Context
+@using ParkSmartRD.ComponetModel.Models
+@inject AppDbContext Db
 
 <h3>Configurar Tarifas</h3>
 
 <div class="card-form">
-    <label>Tarifa primera hora (RD$)</label>
-    <input class="form-control mb-3" type="number" step="0.01" @bind="primeraHora" />
+    @if (cargando)
+    {
+        <p>Cargando...</p>
+    }
+    else if (tarifa is null)
+    {
+        <div class="alert alert-danger">No hay una tarifa activa en la base de datos.</div>
+    }
+    else
+    {
+        <label>Tarifa primera hora (RD$)</label>
+        <input class="form-control mb-3" type="number" step="0.01" @bind="primeraHora" />
 
-    <label>Tarifa hora adicional (RD$)</label>
-    <input class="form-control mb-3" type="number" step="0.01" @bind="horaAdicional" />
+        <label>Tarifa hora adicional (RD$)</label>
+        <input class="form-control mb-3" type="number" step="0.01" @bind="horaAdicional" />
 
-    <label>Tarifa máxima diaria (RD$)</label>
-    <input class="form-control mb-3" type="number" step="0.01" @bind="maximaDiaria" />
+        <label>Tarifa máxima diaria (RD$)</label>
+        <input class="form-control mb-3" type="number" step="0.01" @bind="maximaDiaria" />
 
-    <button class="btn btn-success" @onclick="Guardar">Guardar Cambios</button>
+        <button class="btn btn-success" @onclick="Guardar" disabled="@guardando">Guardar Cambios</button>
+        <small class="d-block mt-2 text-muted">Vigente desde: @tarifa.FechaVigenciaDesde.ToString("dd/MM/yyyy hh:mm tt")</small>
+    }
 
     @if (mensaje is not null)
     {
@@ -22,24 +38,61 @@
 </div>
 
 @code {
-    // TODO: cargar estos valores desde la tabla Tarifa
-    private decimal primeraHora = 50m;
-    private decimal horaAdicional = 25m;
-    private decimal maximaDiaria = 400m;
+    private Tarifa? tarifa;
+    private decimal primeraHora, horaAdicional, maximaDiaria;
+    private bool cargando = true, guardando, exito;
     private string? mensaje;
-    private bool exito;
 
-    private void Guardar()
+    protected override async Task OnInitializedAsync()
     {
+        tarifa = await Db.Tarifas.FirstOrDefaultAsync(t => t.Activa);
+        if (tarifa is not null)
+        {
+            primeraHora = tarifa.PrimeraHora;
+            horaAdicional = tarifa.HoraAdicional;
+            maximaDiaria = tarifa.TarifaMaximaDiaria;
+        }
+        cargando = false;
+    }
+
+    private async Task Guardar()
+    {
+        mensaje = null;
+        if (tarifa is null) return;
+
         if (primeraHora <= 0 || horaAdicional <= 0 || maximaDiaria <= 0)
         {
             mensaje = "Todos los valores deben ser mayores a cero.";
             exito = false;
             return;
         }
+        if (maximaDiaria < primeraHora)
+        {
+            mensaje = "La tarifa máxima diaria no puede ser menor que la de la primera hora.";
+            exito = false;
+            return;
+        }
 
-        // TODO: actualizar la Tarifa activa en la base de datos
-        mensaje = "Tarifas actualizadas correctamente.";
-        exito = true;
+        guardando = true;
+        try
+        {
+            tarifa.PrimeraHora = primeraHora;
+            tarifa.HoraAdicional = horaAdicional;
+            tarifa.TarifaMaximaDiaria = maximaDiaria;
+            tarifa.FechaVigenciaDesde = DateTime.Now;
+            await Db.SaveChangesAsync();
+
+            mensaje = "Tarifas actualizadas correctamente.";
+            exito = true;
+        }
+        catch (Exception ex)
+        {
+            mensaje = "No se pudo guardar: " + (ex.InnerException?.Message ?? ex.Message);
+            exito = false;
+        }
+        finally
+        {
+            guardando = false;
+        }
     }
 }

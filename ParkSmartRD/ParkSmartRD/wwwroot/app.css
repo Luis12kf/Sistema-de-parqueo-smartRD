@@ -101,3 +101,28 @@ h1:focus {
         font-weight: 600;
         margin-bottom: 0.2rem;
     }
+
+.espacios-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+
+.espacio {
+    width: 26px;
+    height: 26px;
+    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    color: white;
+}
+
+.espacio-libre {
+    background: #0F6E56;
+}
+
+.espacio-ocupado {
+    background: #c0392b;
+}
