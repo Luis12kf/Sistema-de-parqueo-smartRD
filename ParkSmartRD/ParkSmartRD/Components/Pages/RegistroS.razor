@@ -1,74 +1,178 @@
 ﻿@page "/registrar-salida"
 @rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using ParkSmartRD.Context
+@using ParkSmartRD.ComponetModel.Models
+@inject AppDbContext Db
 
 <h3>Registrar Salida y Cobrar</h3>
 
 <div class="card-form">
     <label>Placa o número de tiquet</label>
-    <input class="form-control mb-3" @bind="dato" placeholder="Ej: A123456" />
-    <button class="btn btn-primary" @onclick="Buscar">Buscar</button>
+    <input class="form-control mb-3" @bind="dato" placeholder="Ej: A123456 o 000001" />
+    <button class="btn btn-primary" @onclick="Buscar" disabled="@procesando">Buscar</button>
 
-    @if (encontrado)
+    @if (mensajeError is not null)
+    {
+        <div class="alert alert-danger mt-3">@mensajeError</div>
+    }
+
+    @if (registro is not null)
     {
         <div class="mt-3">
-            <p><strong>Hora de entrada:</strong> @horaEntrada.ToString("hh:mm tt")</p>
-            <p><strong>Tiempo transcurrido:</strong> @((int)tiempo.TotalHours)h @tiempo.Minutes min</p>
-            <h4 class="text-success">Total a cobrar: RD$ @monto.ToString("N2")</h4>
-            <button class="btn btn-success mt-2" @onclick="ConfirmarPago">Confirmar Pago</button>
+            <p class="mb-1"><strong>Placa:</strong> @registro.Placa</p>
+            <p class="mb-1"><strong>Ubicación:</strong> @(registro.Espacio?.Nivel?.Nombre) — Espacio @registro.Espacio?.Numero</p>
+            <p class="mb-1"><strong>Hora de entrada:</strong> @registro.HoraEntrada.ToString("dd/MM/yyyy hh:mm tt")</p>
+            <p class="mb-1"><strong>Tiempo transcurrido:</strong> @((int)tiempo.TotalHours)h @tiempo.Minutes min</p>
+            <h4 class="text-success mt-2">Total a cobrar: RD$ @monto.ToString("N2")</h4>
+            <button class="btn btn-success mt-2" @onclick="ConfirmarPago" disabled="@procesando">Confirmar Pago</button>
         </div>
     }
 
-    @if (mensajeExito is not null) { <div class="alert alert-success mt-3">@mensajeExito</div> }
-    @if (mensajeError is not null) { <div class="alert alert-danger mt-3">@mensajeError</div> }
+    @if (recibo is not null)
+    {
+        <div class="alert alert-success mt-3">
+            <h5 class="mb-2">Recibo de pago N° @recibo.TransaccionId.ToString("D6")</h5>
+            <p class="mb-1"><strong>Placa:</strong> @placaRecibo</p>
+            <p class="mb-1"><strong>Hora de salida:</strong> @recibo.FechaHora.ToString("dd/MM/yyyy hh:mm tt")</p>
+            <p class="mb-0"><strong>Total pagado:</strong> RD$ @recibo.Monto.ToString("N2")</p>
+        </div>
+    }
 </div>
 
 @code {
-    // TODO: leer estos valores de la tabla Tarifa
-    private const decimal PrimeraHora = 50m;
-    private const decimal HoraAdicional = 25m;
-    private const decimal MaximaDiaria = 400m;
-
     private string dato = string.Empty;
-    private bool encontrado;
-    private DateTime horaEntrada;
-    private TimeSpan tiempo;
-    private decimal monto;
-    private string? mensajeExito;
+    private bool procesando;
     private string? mensajeError;
 
-    private void Buscar()
-    {
-        mensajeExito = null;
-        mensajeError = null;
-        encontrado = false;
+    private RegistraEntrada? registro;
+    private Tarifa? tarifa;
+    private DateTime horaSalida;
+    private TimeSpan tiempo;
+    private decimal monto;
 
-        if (string.IsNullOrWhiteSpace(dato))
+    private Transaccion? recibo;
+    private string placaRecibo = string.Empty;
+
+    private async Task Buscar()
+    {
+        mensajeError = null;
+        registro = null;
+        recibo = null;
+
+        var texto = dato.Trim().ToUpper();
+        if (string.IsNullOrWhiteSpace(texto))
         {
             mensajeError = "Debe ingresar la placa o el número de tiquet.";
             return;
         }
 
-        // TODO: buscar el RegistroParqueo activo en la base de datos.
-        // Por ahora se simula un vehículo que entró hace 2h 10min.
-        horaEntrada = DateTime.Now.AddMinutes(-130);
-        tiempo = DateTime.Now - horaEntrada;
-        monto = CalcularMonto(tiempo);
-        encontrado = true;
+        procesando = true;
+        try
+        {
+            int.TryParse(texto, out int numeroTiquet);
+
+            registro = await Db.RegistraEntradas
+                .Include(r => r.Espacio).ThenInclude(e => e!.Nivel)
+                .FirstOrDefaultAsync(r => r.Estado && (r.Placa == texto || r.EntradaId == numeroTiquet));
+
+            if (registro is null)
+            {
+                mensajeError = "No se encontró un vehículo dentro del parqueo con esa placa o tiquet.";
+                return;
+            }
+
+            tarifa = await Db.Tarifas.FirstOrDefaultAsync(t => t.Activa);
+            if (tarifa is null)
+            {
+                registro = null;
+                mensajeError = "No hay una tarifa activa configurada.";
+                return;
+            }
+
+            horaSalida = DateTime.Now;
+            tiempo = horaSalida - registro.HoraEntrada;
+            monto = CalcularMonto(tiempo, tarifa);
+        }
+        catch (Exception ex)
+        {
+            registro = null;
+            mensajeError = "No se pudo buscar el vehículo: " + (ex.InnerException?.Message ?? ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
     }
 
-    private void ConfirmarPago()
+    private async Task ConfirmarPago()
     {
-        // TODO: guardar la Transaccion, cerrar el registro y liberar el espacio
-        mensajeExito = $"Pago de RD$ {monto:N2} registrado. Espacio liberado.";
-        encontrado = false;
-        dato = string.Empty;
+        if (registro is null || tarifa is null) return;
+
+        procesando = true;
+        mensajeError = null;
+        try
+        {
+            // Mientras no exista el login, se usa el primer usuario activo (el admin del script)
+            var usuario = await Db.Usuarios.FirstOrDefaultAsync(u => u.Activo);
+            if (usuario is null)
+            {
+                mensajeError = "No hay ningún usuario activo en la base de datos.";
+                return;
+            }
+
+            var salida = new RegistraSalida
+            {
+                EntradaId = registro.EntradaId,
+                HoraSalida = horaSalida
+            };
+
+            var transaccion = new Transaccion
+            {
+                EntradaId = registro.EntradaId,
+                TarifaId = tarifa.TarifaId,
+                UsuarioId = usuario.UsuarioId,
+                Monto = monto,
+                FechaHora = horaSalida
+            };
+
+            registro.Estado = false;
+            if (registro.Espacio is not null)
+                registro.Espacio.Estado = "Libre";
+
+            Db.RegistraSalidas.Add(salida);
+            Db.Transacciones.Add(transaccion);
+            await Db.SaveChangesAsync();   // guarda todo junto: si algo falla, no se guarda nada
+
+            recibo = transaccion;
+            placaRecibo = registro.Placa;
+            registro = null;
+            dato = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "No se pudo registrar el pago: " + (ex.InnerException?.Message ?? ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
     }
 
-    private static decimal CalcularMonto(TimeSpan t)
+    private static decimal CalcularMonto(TimeSpan t, Tarifa tarifa)
     {
-        int horas = (int)Math.Ceiling(t.TotalHours);
+        int horas = (int)Math.Ceiling(t.TotalHours);   // fracción de hora = hora completa
         if (horas <= 0) horas = 1;
-        decimal total = PrimeraHora + (horas > 1 ? (horas - 1) * HoraAdicional : 0);
-        return Math.Min(total, MaximaDiaria);
+
+        int dias = horas / 24;
+        int resto = horas % 24;
+
+        decimal total = dias * tarifa.TarifaMaximaDiaria;
+        if (resto > 0)
+        {
+            decimal parcial = tarifa.PrimeraHora + (resto - 1) * tarifa.HoraAdicional;
+            total += Math.Min(parcial, tarifa.TarifaMaximaDiaria);
+        }
+        return total;
     }
 }
