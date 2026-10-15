@@ -1,5 +1,9 @@
 ﻿@page "/generar-reportes"
 @rendermode InteractiveServer
+@using Microsoft.EntityFrameworkCore
+@using ParkSmartRD.Context
+@using ParkSmartRD.ComponetModel.Models
+@inject AppDbContext Db
 
 <h3>Generar Reportes</h3>
 
@@ -14,47 +18,150 @@
             <input class="form-control" type="date" @bind="hasta" />
         </div>
     </div>
-    <button class="btn btn-success mt-3" @onclick="Generar">Generar</button>
+    <button class="btn btn-success mt-3" @onclick="Generar" disabled="@procesando">Generar</button>
+
+    @if (mensajeError is not null)
+    {
+        <div class="alert alert-danger mt-3">@mensajeError</div>
+    }
 </div>
 
 @if (generado)
 {
-    <div class="row mt-4">
-        <div class="col-md-4"><div class="card-stat card-teal"><h2>RD$ @total.ToString("N2")</h2><p>Ingresos totales</p></div></div>
-        <div class="col-md-4"><div class="card-stat card-purple"><h2>@filas.Count</h2><p>Vehículos atendidos</p></div></div>
-        <div class="col-md-4"><div class="card-stat card-teal"><h2>1h 48min</h2><p>Estadía promedio</p></div></div>
-    </div>
+    <h5 class="mt-4">Ingresos del @desde.ToString("dd/MM/yyyy") al @hasta.ToString("dd/MM/yyyy")</h5>
 
-    <table class="table table-striped mt-4">
-        <thead><tr><th>Fecha</th><th>Placa</th><th>Monto</th></tr></thead>
-        <tbody>
-            @foreach (var f in filas)
-            {
-                <tr><td>@f.Fecha.ToString("dd/MM/yyyy hh:mm tt")</td><td>@f.Placa</td><td>RD$ @f.Monto.ToString("N2")</td></tr>
-            }
-        </tbody>
-    </table>
+    @if (filas.Count == 0)
+    {
+        <div class="alert alert-info mt-2">No hay información disponible para el período seleccionado.</div>
+    }
+    else
+    {
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <div class="card-stat card-teal"><h2>RD$ @total.ToString("N2")</h2><p>Ingresos totales</p></div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-stat card-purple"><h2>@filas.Count</h2><p>Vehículos atendidos</p></div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-stat card-teal"><h2>@((int)estadiaPromedio.TotalHours)h @estadiaPromedio.Minutes min</h2><p>Estadía promedio</p></div>
+            </div>
+        </div>
+
+        <h6 class="mt-4">Ingresos por día</h6>
+        <table class="table table-sm table-striped">
+            <thead><tr><th>Día</th><th>Vehículos</th><th>Total</th></tr></thead>
+            <tbody>
+                @foreach (var d in porDia)
+                {
+                    <tr><td>@d.Dia.ToString("dd/MM/yyyy")</td><td>@d.Vehiculos</td><td>RD$ @d.Total.ToString("N2")</td></tr>
+                }
+            </tbody>
+        </table>
+
+        <h6 class="mt-4">Detalle de cobros</h6>
+        <table class="table table-striped">
+            <thead><tr><th>Recibo</th><th>Fecha y hora</th><th>Placa</th><th>Estadía</th><th>Monto</th></tr></thead>
+            <tbody>
+                @foreach (var f in filas)
+                {
+                    <tr>
+                        <td>@f.Recibo.ToString("D6")</td>
+                        <td>@f.Fecha.ToString("dd/MM/yyyy hh:mm tt")</td>
+                        <td>@f.Placa</td>
+                        <td>@((int)f.Estadia.TotalHours)h @f.Estadia.Minutes min</td>
+                        <td>RD$ @f.Monto.ToString("N2")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <h5 class="mt-4">Ocupación actual</h5>
+    <div class="row mt-2">
+        <div class="col-md-4">
+            <div class="card-stat card-purple"><h2>@ocupados / @totalEspacios</h2><p>Espacios ocupados</p></div>
+        </div>
+        <div class="col-md-4">
+            <div class="card-stat card-teal"><h2>@porcentajeOcupacion.ToString("N0")%</h2><p>Ocupación</p></div>
+        </div>
+    </div>
 }
 
 @code {
     private DateTime desde = DateTime.Today.AddDays(-30);
     private DateTime hasta = DateTime.Today;
-    private bool generado;
-    private decimal total;
+    private bool generado, procesando;
+    private string? mensajeError;
+
+    private record Fila(int Recibo, DateTime Fecha, string Placa, TimeSpan Estadia, decimal Monto);
+    private record DiaResumen(DateTime Dia, int Vehiculos, decimal Total);
+
     private List<Fila> filas = new();
+    private List<DiaResumen> porDia = new();
+    private decimal total;
+    private TimeSpan estadiaPromedio;
 
-    private record Fila(DateTime Fecha, string Placa, decimal Monto);
+    private int ocupados, totalEspacios;
+    private double porcentajeOcupacion;
 
-    private void Generar()
+    private async Task Generar()
     {
-        // TODO: consultar la tabla Transaccion entre 'desde' y 'hasta'
-        filas = new()
+        mensajeError = null;
+        generado = false;
+
+        if (desde.Date > hasta.Date)
         {
-            new(DateTime.Now.AddHours(-5), "A123456", 100m),
-            new(DateTime.Now.AddHours(-3), "B987654", 75m),
-            new(DateTime.Now.AddHours(-1), "C456789", 150m),
-        };
-        total = filas.Sum(f => f.Monto);
-        generado = true;
+            mensajeError = "La fecha «Desde» no puede ser posterior a «Hasta».";
+            return;
+        }
+
+        procesando = true;
+        try
+        {
+            var inicio = desde.Date;
+            var fin = hasta.Date.AddDays(1);   // incluye todo el día "Hasta"
+
+            var transacciones = await Db.Transacciones
+                .AsNoTracking()
+                .Include(t => t.Entrada)
+                .Where(t => t.FechaHora >= inicio && t.FechaHora < fin)
+                .OrderBy(t => t.FechaHora)
+                .ToListAsync();
+
+            filas = transacciones
+                .Select(t => new Fila(
+                    t.TransaccionId,
+                    t.FechaHora,
+                    t.Entrada?.Placa ?? "—",
+                    t.Entrada is null ? TimeSpan.Zero : t.FechaHora - t.Entrada.HoraEntrada,
+                    t.Monto))
+                .ToList();
+
+            total = filas.Sum(f => f.Monto);
+            estadiaPromedio = filas.Count > 0
+                ? TimeSpan.FromMinutes(filas.Average(f => f.Estadia.TotalMinutes))
+                : TimeSpan.Zero;
+
+            porDia = filas
+                .GroupBy(f => f.Fecha.Date)
+                .Select(g => new DiaResumen(g.Key, g.Count(), g.Sum(x => x.Monto)))
+                .OrderBy(d => d.Dia)
+                .ToList();
+
+            totalEspacios = await Db.Espacios.CountAsync();
+            ocupados = await Db.Espacios.CountAsync(e => e.Estado == "Ocupado");
+            porcentajeOcupacion = totalEspacios > 0 ? ocupados * 100.0 / totalEspacios : 0;
+
+            generado = true;
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "No se pudo generar el reporte: " + (ex.InnerException?.Message ?? ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
     }
 }
