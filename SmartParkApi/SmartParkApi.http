@@ -1,0 +1,6 @@
+@SmartParkApi_HostAddress = http://localhost:5199
+
+GET {{SmartParkApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
