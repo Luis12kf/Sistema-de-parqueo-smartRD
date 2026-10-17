@@ -1,11 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.37710.0 d17.14
+VisualStudioVersion = 17.14.37710.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParkSmartRD", "ParkSmartRD\ParkSmartRD\ParkSmartRD.csproj", "{A0F757D2-B8D9-463A-B427-2264161E92C1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ParkSmartRD.Client", "ParkSmartRD\ParkSmartRD.Client\ParkSmartRD.Client.csproj", "{F305875F-CF15-4410-AB9B-1DEFB9FAC182}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartParkApi", "SmartParkApi\SmartParkApi.csproj", "{8640CFD0-20CF-B5D0-2CF9-730952CFE35E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EntornoPrueba", "EntornoPrueba\EntornoPrueba.csproj", "{ADCA66CF-E238-4389-BDDE-9F6FCCC85C63}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +25,14 @@ Global
 		{F305875F-CF15-4410-AB9B-1DEFB9FAC182}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F305875F-CF15-4410-AB9B-1DEFB9FAC182}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F305875F-CF15-4410-AB9B-1DEFB9FAC182}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8640CFD0-20CF-B5D0-2CF9-730952CFE35E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8640CFD0-20CF-B5D0-2CF9-730952CFE35E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8640CFD0-20CF-B5D0-2CF9-730952CFE35E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8640CFD0-20CF-B5D0-2CF9-730952CFE35E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ADCA66CF-E238-4389-BDDE-9F6FCCC85C63}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ADCA66CF-E238-4389-BDDE-9F6FCCC85C63}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ADCA66CF-E238-4389-BDDE-9F6FCCC85C63}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADCA66CF-E238-4389-BDDE-9F6FCCC85C63}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
