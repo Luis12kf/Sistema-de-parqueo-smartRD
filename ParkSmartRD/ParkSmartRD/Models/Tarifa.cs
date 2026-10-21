@@ -15,7 +15,7 @@ namespace ParkSmartRD.ComponetModel.Models
         public int HoraAdicional { get; set; }
 
         [Required]
-        public DateOnly TarifaMaximaDiaria { get; set; }
+        public DateTime TarifaMaximaDiaria { get; set; }
 
         public bool Activa { get; set; }
     }

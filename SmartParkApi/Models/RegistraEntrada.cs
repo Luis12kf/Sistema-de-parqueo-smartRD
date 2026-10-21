@@ -10,7 +10,7 @@ public class RegistraEntrada
 
     public int EspacioID { get; set; }
 
-  public DateOnly HoraEntrada { get; set; }
+  public DateTime HoraEntrada { get; set; }
 
     [MaxLength(100)]
     public string? NombreCliente {  get; set; }

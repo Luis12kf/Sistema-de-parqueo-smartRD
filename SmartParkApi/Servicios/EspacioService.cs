@@ -2,7 +2,7 @@
 using Microsoft.Data.SqlClient;
 using SmartParkApi.Models;
 
-namespace SmartParkApi.Services;
+namespace SmartParkApi.Servicios;
 
 public class EspacioService(IConfiguration configuration)
 {
@@ -20,7 +20,7 @@ public class EspacioService(IConfiguration configuration)
     public async Task<Espacio?> ObtenerPorIdAsync(int id)
     {
         using var connection = new SqlConnection(_connectionString);
-        var query = "SELECT EspacioId, Numero, NivelId, Estado FROM Espacios WHERE EspacioId = @Id";
+        var query = "SELECT EspacioId, Numero, NivelId, Estado FROM Espacio WHERE EspacioId = @Id";
         return await connection.QueryFirstOrDefaultAsync<Espacio>(query, new { Id = id });
     }
 public async Task<bool> ActualizarAsync(Espacio espacio)
@@ -28,10 +28,8 @@ public async Task<bool> ActualizarAsync(Espacio espacio)
         using var connection = new SqlConnection(_connectionString);
 
         var query = @"
-            UPDATE Espacios 
-            SET Numero = @Numero,
-                NivelId = @NivelId,
-                Estado = @Estado
+            UPDATE Espacio 
+            SET  Estado = @Estado
             WHERE EspacioId = @EspacioId";
 
         var filasAfectadas = await connection.ExecuteAsync(query, espacio);

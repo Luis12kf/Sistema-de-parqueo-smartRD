@@ -1,37 +1,31 @@
-using ParkSmartRD.Client.Pages;
 using ParkSmartRD.Components;
+using SmartParkApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//ContionString del .Json
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection"); 
-
-// Add services to the container.
+// 1. Configurar servicios para Blazor Server
 builder.Services.AddRazorComponents()
-    .AddInteractiveWebAssemblyComponents();
+    .AddInteractiveServerComponents();
+
+// 2. Registrar el HttpClient apuntando a tu API y tu Servicio de API
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7003") });
+builder.Services.AddScoped<SmartParkApiService>();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseWebAssemblyDebugging();
-}
-else
+if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
-
+app.UseStaticFiles();
 app.UseAntiforgery();
 
-app.MapStaticAssets();
+// 3. Mapear componentes usando estrictamente el modo Interactive Server
 app.MapRazorComponents<App>()
-    .AddInteractiveWebAssemblyRenderMode()
-    .AddAdditionalAssemblies(typeof(ParkSmartRD.Client._Imports).Assembly);
+    .AddInteractiveServerRenderMode();
 
 app.Run();

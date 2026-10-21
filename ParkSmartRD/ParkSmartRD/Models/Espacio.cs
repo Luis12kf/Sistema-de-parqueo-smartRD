@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ParkSmartRD.ComponetModel.Models
+namespace ParkSmartRD.Models
 {
     public class Espacio
     {

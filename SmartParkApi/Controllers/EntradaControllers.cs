@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SmartParkApi.Models;
-using SmartParkApi.Services;
+using SmartParkApi.Servicios;
 
 namespace SmartParkApi.Controllers;
 
@@ -54,5 +54,18 @@ public class RegistraEntradasController : ControllerBase
 
         // Retorna un código 201 Created con la ruta para consultar el nuevo recurso y el objeto creado
         return CreatedAtAction(nameof(GetEntrada), new { id = idGenerado }, nuevaEntrada);
+    }
+
+    // PUT: api/registraentradas/5/estado
+    [HttpPut("{id}/estado")]
+    public async Task<IActionResult> ActualizarEstado(int id, [FromBody] bool estado)
+    {
+        var actualizado = await _entradaService.ActualizarEstadoAsync(id, estado);
+        if (!actualizado)
+        {
+            return NotFound("No se encontró la entrada especificada.");
+        }
+
+        return NoContent(); // 204 Éxito sin necesidad de devolver todo el objeto
     }
 }

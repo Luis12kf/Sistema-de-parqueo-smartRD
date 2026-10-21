@@ -21,6 +21,6 @@ namespace ParkSmartRD.ComponetModel.Models
         public decimal Monto {  get; set; }
 
         [Required]
-        public DateOnly FechaHora { get; set; }
+        public DateTime FechaHora { get; set; }
     }
 }

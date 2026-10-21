@@ -2,22 +2,17 @@
 using Microsoft.Data.SqlClient;
 using SmartParkApi.Models;
 
-namespace SmartParkApi.Services;
+namespace SmartParkApi.Servicios;
 
-public class RegistraEntradaService
+public class RegistraEntradaService(IConfiguration configuration)
 {
-    private readonly string _connectionString;
-
-    public RegistraEntradaService(IConfiguration configuration)
-    {
-        _connectionString = configuration.GetConnectionString("DefaultConnection")!;
-    }
+    private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")!;
 
     // GET: Obtener todas las entradas
     public async Task<IEnumerable<RegistraEntrada>> ObtenerTodasAsync()
     {
         using var connection = new SqlConnection(_connectionString);
-        var query = "SELECT EntradaID, EspacioID, HoraEntrada, NombreCliente, Placa, Estado FROM RegistraEntrada";
+        var query = "SELECT EntradaID, EspacioID, HoraEntrada, NombreCliente, Placa, Estado FROM RegistraEntrada WHERE Estado = 1";
         return await connection.QueryAsync<RegistraEntrada>(query);
     }
 
@@ -42,5 +37,17 @@ public class RegistraEntradaService
         // Ejecutamos y obtenemos el ID del nuevo registro
         var nuevoId = await connection.ExecuteScalarAsync<int>(query, entrada);
         return nuevoId;
+    }
+    public async Task<bool> ActualizarEstadoAsync(int entradaId, bool estado)
+    {
+        using var connection = new SqlConnection(_connectionString);
+
+        var query = @"
+        UPDATE RegistraEntrada 
+        SET Estado = @Estado 
+        WHERE EntradaID = @EntradaID";
+
+        var filasAfectadas = await connection.ExecuteAsync(query, new { EntradaID = entradaId, Estado = estado });
+        return filasAfectadas > 0;
     }
 }

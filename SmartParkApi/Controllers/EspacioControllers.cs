@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SmartParkApi.Models;
-using SmartParkApi.Services;
+using SmartParkApi.Servicios;
 
 namespace SmartParkApi.Controllers;
 

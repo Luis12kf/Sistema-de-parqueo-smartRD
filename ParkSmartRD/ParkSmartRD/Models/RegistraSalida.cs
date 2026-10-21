@@ -11,7 +11,7 @@ namespace ParkSmartRD.ComponetModel.Models
         public int EntradaID { get; set; }
 
         [Required]
-        public DateOnly HoraSalidad {  get; set; }
+        public DateTime HoraSalidad {  get; set; }
 
 
     }

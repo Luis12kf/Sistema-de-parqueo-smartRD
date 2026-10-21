@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace ParkSmartRD.ComponetModel.Models
+namespace ParkSmartRD.Models
 {
     public class RegistraEntrada
     {
@@ -12,7 +12,7 @@ namespace ParkSmartRD.ComponetModel.Models
         public int EspacioID { get; set; }
 
         [Required]
-      public DateOnly HoraEntrada { get; set; }
+      public DateTime HoraEntrada { get; set; }
 
         [Required]
         [MaxLength(100)]

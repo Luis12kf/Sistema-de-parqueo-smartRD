@@ -13,7 +13,7 @@ public class Tarifa
 
     public Decimal TarifaMaximaDiaria { get; set; }
 
-    public DateOnly FechaVigenciaDesde { get; set; }
+    public DateTime FechaVigenciaDesde { get; set; }
 
     public bool Activa { get; set; }
 }

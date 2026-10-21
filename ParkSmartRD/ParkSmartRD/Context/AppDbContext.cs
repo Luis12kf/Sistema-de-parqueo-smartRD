@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ParkSmartRD.ComponetModel.Models;
+using ParkSmartRD.Models;
 
 namespace ParkSmartRD.Context
 {

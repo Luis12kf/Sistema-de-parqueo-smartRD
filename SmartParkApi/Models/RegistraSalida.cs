@@ -9,7 +9,7 @@ public class RegistraSalida
 
     public int EntradaID { get; set; }
 
-    public DateOnly HoraSalidad {  get; set; }
+    public DateTime HoraSalidad {  get; set; }
 
 
 }

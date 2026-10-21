@@ -1,9 +1,20 @@
 using Scalar;
 using Scalar.AspNetCore;
 using SmartParkApi.Services;
+using SmartParkApi.Servicios;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazor", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 // Add services to the container.
 
@@ -34,5 +45,9 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+
+// Y más abajo (antes de app.MapControllers()):
+app.UseCors("AllowBlazor");
 
 app.Run();

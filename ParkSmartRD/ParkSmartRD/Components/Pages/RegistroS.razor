@@ -1,0 +1,240 @@
+﻿
+            @page "/registrar-salida"
+            @rendermode InteractiveServer
+
+            @using SmartParkApi.Models
+            @using SmartParkApi.Services
+            @using System.Net.Http.Json
+            @inject SmartParkApiService ApiService
+
+            <h3>Registrar Salida y Cobrar</h3>
+
+            <div class="card shadow-sm p-4 mb-4">
+                <div class="mb-3">
+                    <label class="form-label">Placa o número de tiquet</label>
+                    <div class="input-group">
+                        <input class="form-control" @bind="dato" placeholder="Ej: A123456 o 000001" />
+                        <button class="btn btn-primary" @onclick="Buscar" disabled="@procesando">Buscar</button>
+                    </div>
+                </div>
+
+                @if (mensajeError is not null)
+                {
+                    <div class="alert alert-danger mt-3" role="alert">@mensajeError</div>
+                }
+
+    @if (registro is not null)
+    {
+        <div class="card border-info mt-3 p-3 bg-light">
+            <h5 class="text-info mb-3">Detalles del Vehículo</h5>
+            <p class="mb-1"><strong>Placa:</strong> @registro.Placa</p>
+            <p class="mb-1"><strong>Ubicación:</strong> @nombreNivel — Espacio @espacioRegistro?.Numero</p>
+            <p class="mb-1"><strong>Hora de entrada:</strong> @registro.HoraEntrada.ToString("dd/MM/yyyy hh:mm tt")</p>
+            <p class="mb-1"><strong>Tiempo transcurrido:</strong> @tiempoTranscurridoFormateado</p>
+            <h4 class="text-success mt-2 mb-3">Total a cobrar: RD$ @monto.ToString("N2")</h4>
+            <button class="btn btn-success" @onclick="ConfirmarPago" disabled="@procesando">Confirmar Pago</button>
+        </div>
+    }
+
+                @if (recibo is not null)
+                {
+                    <div class="alert alert-success mt-3" role="alert">
+                        <h5 class="mb-2">Recibo de pago N° @recibo.TransaccionId.ToString("D6")</h5>
+                        <p class="mb-1"><strong>Placa:</strong> @placaRecibo</p>
+            <p class="mb-1"><strong>Fecha de salida:</strong> @recibo.FechaHora.ToString("dd/MM/yyyy")</p>
+                        <p class="mb-0"><strong>Total pagado:</strong> RD$ @recibo.Monto.ToString("N2")</p>
+                    </div>
+                }
+            </div>
+
+            @* Espacio reservado para una futura lista de vehículos activos o historial en pantalla *@
+            <div class="mb-4">
+                <!-- Aquí puedes integrar una tabla o listado próximamente -->
+            </div>
+
+            @code {
+                private string dato = string.Empty;
+                private bool procesando;
+                private string? mensajeError;
+
+                private RegistraEntrada? registro;
+                private Tarifa? tarifa;
+                private string nombreNivel = string.Empty;
+                private DateTime horaSalida;
+                private TimeSpan tiempo;
+                private decimal monto;
+
+                private Transaccion? recibo;
+                private string placaRecibo = string.Empty;
+
+                // NUEVO: Variable para almacenar el espacio relacionado al registro
+                private dynamic? espacioRegistro;
+
+                // Propiedad computada moderna para el formato del tiempo
+                private string tiempoTranscurridoFormateado => $"{(int)tiempo.TotalHours}h {tiempo.Minutes} min";
+
+                private async Task Buscar()
+                {
+                    mensajeError = null;
+                    registro = null;
+                    recibo = null;
+                    espacioRegistro = null;
+
+                    var texto = dato.Trim().ToUpper();
+                    if (string.IsNullOrWhiteSpace(texto))
+                    {
+                        mensajeError = "Debe ingresar la placa o el número de tiquet.";
+                        return;
+                    }
+
+                    procesando = true;
+                    try
+                    {
+                        _ = int.TryParse(texto, out int numeroTiquet);
+
+                        // Carga paralela de datos desde la API para optimizar tiempos de respuesta
+                        var entradasTask = ApiService.ObtenerEntradasAsync();
+                        var espaciosTask = ApiService.ObtenerEspaciosAsync();
+                        var nivelesTask = ApiService.ObtenerNivelesAsync();
+                        var tarifasTask = ApiService.ObtenerTarifasAsync();
+
+                        await Task.WhenAll(entradasTask, espaciosTask, nivelesTask, tarifasTask);
+
+                        var entradas = await entradasTask;
+                        var espacios = await espaciosTask;
+                        var niveles = await nivelesTask;
+                        var tarifas = await tarifasTask;
+
+                        registro = entradas?.FirstOrDefault(r => r.Estado == true && (r.Placa == texto || r.EntradaID == numeroTiquet));
+                        if (registro is null)
+                        {
+                            mensajeError = "No se encontró un vehículo dentro del parqueo con esa placa o tiquet.";
+                            return;
+                        }
+
+                        // NUEVO: Guardar el espacio relacionado en la variable local
+                        espacioRegistro = espacios?.FirstOrDefault(e => e.EspacioId == registro.EspacioID);
+
+                        if (espacioRegistro is not null)
+                        {
+                            // Reemplaza la línea problemática para evitar la advertencia CS8601
+                            if (niveles?.FirstOrDefault(n => n.NivelId == espacioRegistro.NivelId) is { } nivelEncontrado && nivelEncontrado.Nombre is not null)
+                            {
+                                nombreNivel = nivelEncontrado.Nombre;
+                            }
+                            else
+                            {
+                                nombreNivel = $"Nivel {espacioRegistro.NivelId}";
+                            }
+                        }
+
+                        tarifa = tarifas?.FirstOrDefault(t => t.Activa);
+                        if (tarifa is null)
+                        {
+                            registro = null;
+                            mensajeError = "No hay una tarifa activa configurada.";
+                            return;
+                        }
+
+                        horaSalida = DateTime.Now;
+                        tiempo = horaSalida - registro.HoraEntrada;
+                        monto = CalcularMonto(tiempo, tarifa);
+                    }
+                    catch (Exception ex)
+                    {
+                        registro = null;
+                        mensajeError = $"No se pudo buscar el vehículo: {ex.InnerException?.Message ?? ex.Message}";
+                    }
+                    finally
+                    {
+                        procesando = false;
+                    }
+                }
+
+                private async Task ConfirmarPago()
+                {
+                    if (registro is null || tarifa is null) return;
+
+                    procesando = true;
+                    mensajeError = null;
+                    try
+                    {
+                        var usuarios = await ApiService.ObtenerUsuariosAsync();
+                        if (usuarios?.FirstOrDefault(u => u.Activo) is not { } usuario)
+                        {
+                            mensajeError = "No hay ningún usuario activo en el sistema.";
+                            return;
+                        }
+
+                        var salida = new RegistraSalida
+                        {
+                            EntradaID = registro.EntradaID,
+
+                // Por esta línea corregida:
+                HoraSalidad = horaSalida
+                        };
+
+                        var transaccion = new Transaccion
+                        {
+                            EntradaID = registro.EntradaID,
+                            TarifaId = tarifa.TarifaId,
+                            UsuarioId = usuario.UsuarioID,
+                            Monto = monto,
+                            FechaHora = DateOnly.FromDateTime(horaSalida)                        };
+
+                        // Ejecución asíncrona concurrente de peticiones de guardado
+                        var taskSalida = ApiService.CrearSalidaAsync(salida);
+                        var taskTransaccion = ApiService.CrearTransaccionAsync(transaccion);
+
+                        await Task.WhenAll(taskSalida, taskTransaccion);
+
+                        if (!taskSalida.Result.IsSuccessStatusCode || !taskTransaccion.Result.IsSuccessStatusCode)
+                        {
+                            mensajeError = "No se pudo registrar el pago y la salida en el servidor.";
+                            return;
+                        }
+
+                        // Reemplaza 'ApiSevice' por 'ApiService' en ambas líneas para corregir el error CS0103
+                        if (espacioRegistro is not null)
+                        {
+                            espacioRegistro.Estado = "Libre";
+                            await ApiService.ActualizarEspacioAsync(espacioRegistro.EspacioId, espacioRegistro);
+
+                            await ApiService.ActualizarEstadoEntradaAsync(registro.EntradaID, false);
+
+                   
+                        }
+
+                        recibo = await taskTransaccion.Result.Content.ReadFromJsonAsync<Transaccion>() ?? transaccion;
+                      placaRecibo = registro.Placa ?? string.Empty;
+                        registro = null;
+                        dato = string.Empty;
+                        espacioRegistro = null;
+                    }
+                    catch (Exception ex)
+                    {
+                        mensajeError = $"No se pudo registrar el pago: {ex.InnerException?.Message ?? ex.Message}";
+                    }
+                    finally
+                    {
+                        procesando = false;
+                    }
+                }
+
+                private static decimal CalcularMonto(TimeSpan t, Tarifa tarifa)
+                {
+                    int horas = (int)Math.Ceiling(t.TotalHours);
+                    if (horas <= 0) horas = 1;
+
+                    int dias = horas / 24;
+                    int resto = horas % 24;
+
+                    decimal total = dias * tarifa.TarifaMaximaDiaria;
+                    if (resto > 0)
+                    {
+                        decimal parcial = tarifa.PrimeraHora + (resto - 1) * tarifa.HoraAdicional;
+                        total += Math.Min(parcial, tarifa.TarifaMaximaDiaria);
+                    }
+                    return total;
+                }
+            }
