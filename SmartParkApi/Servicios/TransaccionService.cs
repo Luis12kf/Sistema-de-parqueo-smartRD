@@ -1,5 +1,6 @@
 ﻿using Dapper;
 using Microsoft.Data.SqlClient;
+using ParkSmartRD.Models;
 using SmartParkApi.Models;
 
 namespace SmartParkApi.Services;
@@ -54,5 +55,30 @@ public class TransaccionService(IConfiguration configuration)
 
         var filasAfectadas = await connection.ExecuteAsync(query, transaccion);
         return filasAfectadas > 0;
+    }
+
+    // general reportes
+    public async Task<IEnumerable<TransaccionReporteDto>> ObtenerReporteAsync(DateTime inicio, DateTime fin)
+    {
+        using var connection = new SqlConnection(_connectionString);
+
+        var query = @"
+        SELECT 
+            t.TransaccionId,
+            t.FechaHora,
+            ISNULL(e.Placa, 'S/P') AS Placa,
+            ISNULL(DATEDIFF(MINUTE, e.HoraEntrada, ISNULL(s.HoraSalidad, t.FechaHora)), 0) AS MinutosEstadia,
+            t.Monto
+        FROM Transaccion t
+        INNER JOIN RegistraEntrada e ON t.EntradaID = e.EntradaID
+        LEFT JOIN RegistraSalida s ON t.EntradaID = s.EntradaID
+        WHERE CAST(t.FechaHora AS DATE) BETWEEN @Inicio AND @Fin
+        ORDER BY t.FechaHora DESC";
+        return await connection.QueryAsync<TransaccionReporteDto>(query, new
+        {
+            Inicio = inicio.Date,
+            Fin = fin.Date
+        });
+
     }
 }
