@@ -1,4 +1,4 @@
-﻿@page "/generar-reportes"
+@page "/generar-reportes"
 @rendermode InteractiveServer
 @inject HttpClient Http
 
@@ -161,7 +161,7 @@
         public int TransaccionId { get; set; }
         public DateTime FechaHora { get; set; }
         public string Placa { get; set; } = string.Empty;
-        public TimeSpan Estadia { get; set; }
+        public double MinutosEstadia { get; set; }
         public decimal Monto { get; set; }
     }
 
@@ -196,7 +196,7 @@
                     t.TransaccionId,
                     t.FechaHora,
                     t.Placa,
-                    t.Estadia,
+                    TimeSpan.FromMinutes(t.MinutosEstadia),
                     t.Monto
                 )).ToList();
             }

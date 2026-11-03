@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SmartParkApi.Models;
@@ -15,5 +15,5 @@ public class Transaccion
 
     public decimal Monto {  get; set; }
 
-    public DateOnly FechaHora { get; set; }
+    public DateTime FechaHora { get; set; }
 }

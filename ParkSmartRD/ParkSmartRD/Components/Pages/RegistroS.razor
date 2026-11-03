@@ -1,4 +1,4 @@
-﻿
+
             @page "/registrar-salida"
             @rendermode InteractiveServer
 
@@ -68,7 +68,7 @@
                 private string placaRecibo = string.Empty;
 
                 // NUEVO: Variable para almacenar el espacio relacionado al registro
-                private dynamic? espacioRegistro;
+                private Espacio? espacioRegistro;
 
                 // Propiedad computada moderna para el formato del tiempo
                 private string tiempoTranscurridoFormateado => $"{(int)tiempo.TotalHours}h {tiempo.Minutes} min";
@@ -180,7 +180,7 @@
                             TarifaId = tarifa.TarifaId,
                             UsuarioId = usuario.UsuarioID,
                             Monto = monto,
-                            FechaHora = DateOnly.FromDateTime(horaSalida)                        };
+                            FechaHora = horaSalida                        };
 
                         // Ejecución asíncrona concurrente de peticiones de guardado
                         var taskSalida = ApiService.CrearSalidaAsync(salida);

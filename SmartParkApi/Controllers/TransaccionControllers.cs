@@ -1,7 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using ParkSmartRD.Models;
+using Microsoft.AspNetCore.Mvc;
 using SmartParkApi.Models;
-using SmartParkApi.Services;
+using SmartParkApi.Servicios;
 
 namespace SmartParkApi.Controllers;
 
@@ -67,10 +66,11 @@ public class TransaccionesController(TransaccionService transaccionService) : Co
         return NoContent(); // 204 No Content
     }
 
+    // GET: api/transacciones/reporte?inicio=2025-01-01&fin=2025-01-31
     [HttpGet("reporte")]
     public async Task<ActionResult<IEnumerable<TransaccionReporteDto>>> GetReporte(
-    [FromQuery] DateTime inicio,
-    [FromQuery] DateTime fin)
+        [FromQuery] DateTime inicio,
+        [FromQuery] DateTime fin)
     {
         var reporte = await _transaccionService.ObtenerReporteAsync(inicio, fin);
         return Ok(reporte);

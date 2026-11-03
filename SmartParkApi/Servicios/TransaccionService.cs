@@ -1,9 +1,8 @@
-﻿using Dapper;
+using Dapper;
 using Microsoft.Data.SqlClient;
-using ParkSmartRD.Models;
 using SmartParkApi.Models;
 
-namespace SmartParkApi.Services;
+namespace SmartParkApi.Servicios;
 
 public class TransaccionService(IConfiguration configuration)
 {
@@ -45,7 +44,7 @@ public class TransaccionService(IConfiguration configuration)
         using var connection = new SqlConnection(_connectionString);
 
         var query = @"
-            UPDATE Transacciones 
+            UPDATE Transaccion 
             SET EntradaID = @EntradaID,
                 TarifaId = @TarifaId,
                 UsuarioId = @UsuarioId,
@@ -57,7 +56,7 @@ public class TransaccionService(IConfiguration configuration)
         return filasAfectadas > 0;
     }
 
-    // general reportes
+    // GET: Reporte de transacciones por rango de fechas
     public async Task<IEnumerable<TransaccionReporteDto>> ObtenerReporteAsync(DateTime inicio, DateTime fin)
     {
         using var connection = new SqlConnection(_connectionString);
@@ -74,11 +73,11 @@ public class TransaccionService(IConfiguration configuration)
         LEFT JOIN RegistraSalida s ON t.EntradaID = s.EntradaID
         WHERE CAST(t.FechaHora AS DATE) BETWEEN @Inicio AND @Fin
         ORDER BY t.FechaHora DESC";
+
         return await connection.QueryAsync<TransaccionReporteDto>(query, new
         {
             Inicio = inicio.Date,
             Fin = fin.Date
         });
-
     }
 }

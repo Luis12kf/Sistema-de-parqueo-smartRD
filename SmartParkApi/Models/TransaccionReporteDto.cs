@@ -1,4 +1,4 @@
-﻿namespace ParkSmartRD.Models;
+namespace SmartParkApi.Models;
 
 public class TransaccionReporteDto
 {

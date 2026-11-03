@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @page "/menu"
 @rendermode InteractiveServer
 @using SmartParkApi.Services
@@ -89,7 +89,7 @@
             {
                 var hoy = DateTime.Today;
                 ingresosHoy = transacciones
-                    .Where(t => t.FechaHora.ToDateTime(TimeOnly.MinValue).Date == hoy)
+                    .Where(t => t.FechaHora.Date == hoy)
                     .Sum(t => t.Monto);
             }
         }

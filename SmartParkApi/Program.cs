@@ -42,12 +42,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
-
-app.MapControllers();
-
-
-// Y más abajo (antes de app.MapControllers()):
 app.UseCors("AllowBlazor");
+app.UseAuthorization();
+app.MapControllers();
 
 app.Run();
