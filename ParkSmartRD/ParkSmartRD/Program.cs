@@ -8,7 +8,15 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // 2. Registrar el HttpClient apuntando a tu API y tu Servicio de API
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri("https://localhost:7003") });
+builder.Services.AddScoped(sp =>
+{
+    var handler = new HttpClientHandler();
+    if (builder.Environment.IsDevelopment())
+    {
+        handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
+    }
+    return new HttpClient(handler) { BaseAddress = new Uri("https://localhost:7003") };
+});
 builder.Services.AddScoped<SmartParkApiService>();
 
 var app = builder.Build();
