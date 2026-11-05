@@ -1,7 +1,101 @@
-﻿@page "/"
+@page "/menu"
+@page "/home"
+@rendermode InteractiveServer
+@using SmartParkApi.Services
+@inject SmartParkApiService ApiService
 
-<PageTitle>Home</PageTitle>
+<div class="container-fluid py-4">
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h3 class="fw-bold text-dark">Bienvenido, Cajero Turno Mañana</h3>
+            <p class="text-muted">Panel de control y resumen general del estacionamiento.</p>
+        </div>
+    </div>
 
-<h1>Hello, world!</h1>
+    <!-- Tarjetas de estadísticas con Bootstrap nativo -->
+    <div class="row g-4 mb-4">
+        <!-- Espacios Libres -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-success bg-opacity-10 text-success h-100">
+                <div class="card-body text-center p-4">
+                    <h2 class="display-6 fw-bold mb-1">@espaciosLibres / @espaciosTotal</h2>
+                    <p class="card-text fw-semibold mb-0">Espacios Libres</p>
+                </div>
+            </div>
+        </div>
 
-Welcome to your new app.
+        <!-- Vehículos Dentro -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-danger bg-opacity-10 text-danger h-100">
+                <div class="card-body text-center p-4">
+                    <h2 class="display-6 fw-bold mb-1">@vehiculosDentro</h2>
+                    <p class="card-text fw-semibold mb-0">Vehículos Dentro</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ingresos de Hoy -->
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm bg-primary bg-opacity-10 text-primary h-100">
+                <div class="card-body text-center p-4">
+                    <h2 class="display-6 fw-bold mb-1">RD$ @ingresosHoy.ToString("N2")</h2>
+                    <p class="card-text fw-semibold mb-0">Ingresos de Hoy</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accesos rápidos -->
+    <div class="row">
+        <div class="col-12">
+            <h5 class="fw-semibold mb-3">Accesos rápidos</h5>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="/registrar-entrada" class="btn btn-primary px-4 py-2">Registrar Entrada</a>
+                <a href="/registrar-salida" class="btn btn-outline-secondary px-4 py-2">Registrar Salida</a>
+                <a href="/disponibilidad" class="btn btn-outline-success px-4 py-2">Ver Disponibilidad</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int espaciosLibres;
+    private int espaciosTotal;
+    private int vehiculosDentro;
+    private decimal ingresosHoy;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var espacios = await ApiService.ObtenerEspaciosAsync();
+            var entradas = await ApiService.ObtenerEntradasAsync();
+            var transacciones = await ApiService.ObtenerTransaccionesAsync();
+
+            if (espacios != null)
+            {
+                espaciosTotal = espacios.Count;
+                espaciosLibres = espacios.Count(e => e.Estado != null && (e.Estado.Equals("Libre", StringComparison.OrdinalIgnoreCase) || e.Estado.Equals("True", StringComparison.OrdinalIgnoreCase)));
+            }
+
+            if (entradas != null)
+            {
+                vehiculosDentro = entradas.Count(r => r.Estado == true);
+            }
+
+            if (transacciones != null)
+            {
+                var hoy = DateTime.Today;
+                ingresosHoy = transacciones
+                    .Where(t => t.FechaHora.Date == hoy)
+                    .Sum(t => t.Monto);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar los datos de la API: {ex.Message}");
+        }
+    }
+}

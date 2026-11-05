@@ -1,0 +1,161 @@
+﻿@page "/registrar-entrada"
+@rendermode InteractiveServer
+
+@using SmartParkApi.Models
+@using SmartParkApi.Services
+@using System.Net.Http.Json
+@inject SmartParkApiService ApiService
+
+<div class="container-fluid py-3" style="max-width: 700px;">
+    <!-- Encabezado -->
+    <div class="mb-4">
+        <h1 class="fw-bold text-dark m-0 display-6">Registrar Entrada de Vehículo</h1>
+        <p class="text-muted mt-1">Ingrese los datos del vehículo para asignar automáticamente un espacio disponible.</p>
+    </div>
+
+    <!-- Formulario principal estilizado con Bootstrap -->
+    <div class="card border-0 shadow-sm p-4 mb-4">
+        <div class="card-body p-0">
+            <div class="mb-3">
+                <label class="form-label fw-semibold text-dark">Placa del vehículo <span class="text-danger">*</span></label>
+                <input class="form-control form-control-lg text-uppercase" @bind="placa" placeholder="Ej: A123456" maxlength="10" />
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-semibold text-dark">Nombre del cliente (opcional)</label>
+                <input class="form-control" @bind="nombreCliente" placeholder="Ej: Juan Pérez" maxlength="100" />
+            </div>
+
+            <button class="btn btn-primary btn-lg w-100 fw-semibold shadow-sm" @onclick="RegistrarEntradaVehiculo" disabled="@procesando">
+                @if (procesando)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    <span>Procesando entrada...</span>
+                }
+                else
+                {
+                    <span>Registrar Entrada</span>
+                }
+            </button>
+        </div>
+    </div>
+
+    @if (mensajeError is not null)
+    {
+        <div class="alert alert-danger mt-3">@mensajeError</div>
+    }
+
+    @if (tiquet is not null)
+    {
+        <div class="alert alert-success mt-3">
+            <h5 class="mb-2">Tiquet de entrada N° @tiquet.EntradaID.ToString("D6")</h5>
+            <p class="mb-1"><strong>Placa:</strong> @tiquet.Placa</p>
+            <p class="mb-1"><strong>Ubicación:</strong> @nombreNivel — Espacio @espacioTiquet?.Numero</p>
+            <p class="mb-0"><strong>Hora de entrada:</strong> @tiquet.HoraEntrada.ToString("dd/MM/yyyy hh:mm tt")</p>
+        </div>
+    }
+</div>
+
+@code {
+    private string placa = string.Empty;
+    private string nombreCliente = string.Empty;
+    private string? mensajeError;
+    private RegistraEntrada? tiquet;
+    private string nombreNivel = string.Empty;
+    private bool procesando;
+    private Espacio? espacioTiquet;
+
+    private async Task RegistrarEntradaVehiculo()
+    {
+        mensajeError = null;
+        tiquet = null;
+        espacioTiquet = null;
+
+        var placaLimpia = placa.Trim().ToUpper();
+        if (string.IsNullOrWhiteSpace(placaLimpia))
+        {
+            mensajeError = "Debe ingresar la placa del vehículo.";
+            return;
+        }
+
+        procesando = true;
+        try
+        {
+            // 1. Validar si el vehículo ya está dentro
+            var entradas = await ApiService.ObtenerEntradasAsync();
+            bool yaDentro = entradas?.Any(r => r.Placa == placaLimpia && r.Estado == true) ?? false;
+
+            if (yaDentro)
+            {
+                mensajeError = "Este vehículo ya se encuentra dentro del parqueo.";
+                return;
+            }
+
+            // 2. Buscar primer espacio libre
+            var espacios = await ApiService.ObtenerEspaciosAsync();
+            var niveles = await ApiService.ObtenerNivelesAsync();
+
+            var espacioLibre = espacios?
+                .Where(e => e.Estado != null && e.Estado.Equals("Libre", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(e => e.NivelId)
+                .ThenBy(e => e.Numero)
+                .FirstOrDefault();
+
+            if (espacioLibre is null)
+            {
+                mensajeError = "Parqueo lleno. No hay espacios disponibles.";
+                return;
+            }
+
+            var nuevaEntrada = new RegistraEntrada
+            {
+                EspacioID = espacioLibre.EspacioId,
+                Placa = placaLimpia,
+                NombreCliente = string.IsNullOrWhiteSpace(nombreCliente) ? null : nombreCliente.Trim(),
+                HoraEntrada = DateTime.Now,
+                Estado = true
+            };
+
+            // 4. Enviar el registro a la API
+            var response = await ApiService.CrearEntradaAsync(nuevaEntrada);
+            if (!response.IsSuccessStatusCode)
+            {
+                mensajeError = "No se pudo registrar la entrada en el servidor.";
+                return;
+            }
+
+            // Leer el objeto guardado que incluye el EntradaId generado
+            var entradaGuardada = await response.Content.ReadFromJsonAsync<RegistraEntrada>();
+
+            // 5. Actualizar el estado del espacio a "Ocupado"
+            espacioLibre.Estado = "Ocupado";
+            await ApiService.ActualizarEspacioAsync(espacioLibre.EspacioId, espacioLibre);
+
+            // Preparar tiquet
+            var nivelAsociado = niveles?.FirstOrDefault(n => n.NivelId == espacioLibre.NivelId);
+            nombreNivel = nivelAsociado?.Nombre ?? $"Nivel {espacioLibre.NivelId}";
+
+            if (entradaGuardada is not null)
+            {
+                tiquet = entradaGuardada;
+            }
+            else
+            {
+                tiquet = nuevaEntrada;
+            }
+            espacioTiquet = espacioLibre;
+
+            // Limpiar formulario
+            placa = string.Empty;
+            nombreCliente = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Error de conexión con la API: " + (ex.InnerException?.Message ?? ex.Message);
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+}

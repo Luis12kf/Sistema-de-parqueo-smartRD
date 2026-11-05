@@ -1,0 +1,100 @@
+﻿@page "/disponibilidad"
+@rendermode InteractiveServer
+@using SmartParkApi.Services
+@using SmartParkApi.Models
+@inject SmartParkApiService ApiService
+
+<div class="container-fluid py-3">
+    <!-- Título y Botón Actualizar a la derecha -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="fw-bold text-dark m-0 display-6">Disponibilidad de Espacios</h1>
+        <button class="btn btn-outline-primary px-3 py-1" @onclick="Cargar">Actualizar</button>
+    </div>
+
+    @if (mensajeError is not null)
+    {
+        <div class="alert alert-danger shadow-sm">@mensajeError</div>
+    }
+    else if (grupos is null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Cargando espacios...</p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var g in grupos)
+            {
+                var total = g.Count();
+                var libres = g.Count(e => e.Estado != null && (e.Estado.Equals("Libre", StringComparison.OrdinalIgnoreCase) || e.Estado.Equals("True", StringComparison.OrdinalIgnoreCase)));
+                var ocupados = total - libres;
+
+                <div class="col-md-4">
+                    <!-- Tarjeta superior estilo Menta -->
+                    <div class="p-4 rounded-3 text-center mb-3" style="background-color: #e6f4ea; border: 1px solid #137333; color: #137333;">
+                        <h3 class="fs-4 mb-2 fw-normal">@g.Key</h3>
+                        <div class="display-4 fw-normal my-1">@libres</div>
+                        <div class="fs-6 mb-2 text-muted" style="color: #137333 !important;">espacios libres</div>
+                        <div class="fw-normal small" style="color: #137333;">@ocupados / @total ocupados</div>
+                    </div>
+
+                    <!-- Cuadrícula de 10 columnas -->
+                    <div class="d-grid gap-1" style="grid-template-columns: repeat(10, 1fr);">
+                        @foreach (var e in g.OrderBy(x => x.Numero))
+                        {
+                            var esLibre = e.Estado != null && (e.Estado.Equals("Libre", StringComparison.OrdinalIgnoreCase) || e.Estado.Equals("True", StringComparison.OrdinalIgnoreCase));
+
+                            <div class="d-flex align-items-center justify-content-center rounded text-white fw-bold"
+                                 style="height: 36px; font-size: 13px; background-color: @(esLibre ? "#0f766e" : "#dc2626"); cursor: pointer;"
+                                 title="Espacio @e.Numero">
+                                @e.Numero
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<IGrouping<string?, Espacio>>? grupos;
+    private string? mensajeError;
+
+    protected override async Task OnInitializedAsync() => await Cargar();
+
+    private async Task Cargar()
+    {
+        mensajeError = null;
+        try
+        {
+            // 1. Obtenemos los espacios y los niveles desde la API
+            var listaEspacios = await ApiService.ObtenerEspaciosAsync();
+            var listaNiveles = await ApiService.ObtenerNivelesAsync();
+
+            if (listaEspacios != null)
+            {
+                // Diccionario rápido para mapear NivelId -> Nombre del Nivel
+              var diccionarioNiveles = listaNiveles?.ToDictionary(n => n.NivelId, n => n.Nombre) 
+                                         ?? new Dictionary<int, string?>();
+
+                // 2. Agrupamos asignando el nombre real del nivel (ej: "Nivel 1")
+                grupos = listaEspacios
+                    .OrderBy(e => e.NivelId)
+                    .ThenBy(e => e.Numero)
+                    .GroupBy(e => diccionarioNiveles.TryGetValue(e.NivelId, out var nombre) ? nombre : $"Nivel {e.NivelId}")
+                    .ToList();
+            }
+            else
+            {
+                mensajeError = "No se pudieron obtener los espacios de la API.";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "Error al conectar con el servidor: " + ex.Message;
+        }
+    }
+}

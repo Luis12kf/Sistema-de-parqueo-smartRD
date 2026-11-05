@@ -1,0 +1,230 @@
+@page "/generar-reportes"
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<div class="container-fluid px-4 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-file-earmark-bar-graph me-2"></i>Generar Reportes</h2>
+    </div>
+
+    <!-- Tarjeta de Filtros -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body bg-light rounded">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Desde</label>
+                    <input class="form-control" type="date" @bind="desde" />
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label fw-bold">Hasta</label>
+                    <input class="form-control" type="date" @bind="hasta" />
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-success w-100" @onclick="Generar" disabled="@procesando">
+                        @if (procesando)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            <span>Generando...</span>
+                        }
+                        else
+                        {
+                            <span>Generar</span>
+                        }
+                    </button>
+                </div>
+            </div>
+
+            @if (mensajeError is not null)
+            {
+                <div class="alert alert-danger mt-3 mb-0 shadow-sm">@mensajeError</div>
+            }
+        </div>
+    </div>
+
+    @if (generado)
+    {
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <h4 class="card-title text-secondary mb-4">
+                    Ingresos del @desde.ToString("dd/MM/yyyy") al @hasta.ToString("dd/MM/yyyy")
+                </h4>
+
+                @if (filas.Count == 0)
+                {
+                    <div class="alert alert-info shadow-sm">No hay información disponible para el período seleccionado.</div>
+                }
+                else
+                {
+                    <!-- Tarjetas Estadísticas con Bootstrap -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="card border-0 bg-success text-white shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="card-subtitle text-white-50 uppercase">Ingresos Totales</h6>
+                                    <h2 class="display-6 fw-bold mt-2">RD$ @total.ToString("N2")</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 bg-primary text-white shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="card-subtitle text-white-50 uppercase">Vehículos Atendidos</h6>
+                                    <h2 class="display-6 fw-bold mt-2">@filas.Count</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 bg-info text-white shadow-sm h-100">
+                                <div class="card-body text-center">
+                                    <h6 class="card-subtitle text-white-50 uppercase">Estadía Promedio</h6>
+                                    <h2 class="display-6 fw-bold mt-2">@((int)estadiaPromedio.TotalHours)h @estadiaPromedio.Minutes min</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla: Ingresos por día -->
+                    <div class="mb-5">
+                        <h5 class="text-dark mb-3">Ingresos por día</h5>
+                        <div class="table-responsive shadow-sm rounded">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Día</th>
+                                        <th>Vehículos</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var d in porDia)
+                                    {
+                                        <tr>
+                                            <td>@d.Dia.ToString("dd/MM/yyyy")</td>
+                                            <td><span class="badge bg-secondary">@d.Vehiculos</span></td>
+                                            <td class="fw-bold text-success">RD$ @d.Total.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tabla: Detalle de cobros -->
+                    <div class="mb-4">
+                        <h5 class="text-dark mb-3">Detalle de cobros</h5>
+                        <div class="table-responsive shadow-sm rounded">
+                            <table class="table table-hover table-striped align-middle mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Recibo</th>
+                                        <th>Fecha y hora</th>
+                                        <th>Placa</th>
+                                        <th>Estadía</th>
+                                        <th>Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var f in filas)
+                                    {
+                                        <tr>
+                                            <td><code>@f.Recibo.ToString("D6")</code></td>
+                                            <td>@f.Fecha.ToString("dd/MM/yyyy hh:mm tt")</td>
+                                            <td><span class="badge bg-dark">@f.Placa</span></td>
+                                            <td>@((int)f.Estadia.TotalHours)h @f.Estadia.Minutes min</td>
+                                            <td class="fw-bold text-success">RD$ @f.Monto.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private DateTime desde = DateTime.Today.AddDays(-30);
+    private DateTime hasta = DateTime.Today;
+    private bool generado, procesando;
+    private string? mensajeError;
+
+    // Registros locales para la vista
+    private record Fila(int Recibo, DateTime Fecha, string Placa, TimeSpan Estadia, decimal Monto);
+    private record DiaResumen(DateTime Dia, int Vehiculos, decimal Total);
+
+    // Clase auxiliar para recibir los datos que manda tu API
+    private class TransaccionReporteDto
+    {
+        public int TransaccionId { get; set; }
+        public DateTime FechaHora { get; set; }
+        public string Placa { get; set; } = string.Empty;
+        public double MinutosEstadia { get; set; }
+        public decimal Monto { get; set; }
+    }
+
+    private List<Fila> filas = new();
+    private List<DiaResumen> porDia = new();
+    private decimal total;
+    private TimeSpan estadiaPromedio;
+
+    private async Task Generar()
+    {
+        mensajeError = null;
+        generado = false;
+
+        if (desde.Date > hasta.Date)
+        {
+            mensajeError = "La fecha «Desde» no puede ser posterior a «Hasta».";
+            return;
+        }
+
+        procesando = true;
+        try
+        {
+            var inicio = desde.ToString("yyyy-MM-dd");
+            var fin = hasta.ToString("yyyy-MM-dd");
+
+            // Petición HTTP a tu API
+            var transaccionesDto = await Http.GetFromJsonAsync<List<TransaccionReporteDto>>($"api/transacciones/reporte?inicio={inicio}&fin={fin}");
+
+            if (transaccionesDto != null)
+            {
+                filas = transaccionesDto.Select(t => new Fila(
+                    t.TransaccionId,
+                    t.FechaHora,
+                    t.Placa,
+                    TimeSpan.FromMinutes(t.MinutosEstadia),
+                    t.Monto
+                )).ToList();
+            }
+            else
+            {
+                filas = new();
+            }
+
+            total = filas.Sum(f => f.Monto);
+            estadiaPromedio = filas.Count > 0
+                ? TimeSpan.FromMinutes(filas.Average(f => f.Estadia.TotalMinutes))
+                : TimeSpan.Zero;
+
+            porDia = filas
+                .GroupBy(f => f.Fecha.Date)
+                .Select(g => new DiaResumen(g.Key, g.Count(), g.Sum(x => x.Monto)))
+                .OrderBy(d => d.Dia)
+                .ToList();
+
+            generado = true;
+        }
+        catch (Exception ex)
+        {
+            mensajeError = "No se pudo generar el reporte: " + ex.Message;
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+}

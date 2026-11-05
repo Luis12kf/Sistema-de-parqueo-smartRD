@@ -1,0 +1,126 @@
+@page "/"
+@page "/login"
+@rendermode InteractiveServer
+@using SmartParkApi.Models
+@using SmartParkApi.Services
+@inject SmartParkApiService ApiService
+@inject NavigationManager Navigation
+<div class="position-fixed top-0 start-0 w-100 h-100 bg-light d-flex justify-content-center align-items-center" style="z-index: 99999;">
+    <div class="card shadow-lg border-0" style="width: 380px; border-radius: 12px;">
+        <div class="card-body p-4">
+            <div class="text-center mb-4">
+                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex p-3 mb-2">
+                    <span class="fs-1">🅿️</span>
+                </div>
+                <h4 class="fw-bold mb-1">ParkSmartRD</h4>
+                <p class="text-muted small">Control de Acceso</p>
+            </div>
+            <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Usuario</label>
+                    <InputText @bind-Value="loginModel.Usuario" class="form-control" placeholder="Ingrese su usuario" autofocus />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Contraseña</label>
+                    <InputText type="password" @bind-Value="loginModel.Contrasena" class="form-control" placeholder="Ingrese su contraseña" />
+                </div>
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger py-2 px-3 small mb-3" role="alert" style="white-space: pre-line;">
+                        @errorMessage
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(infoMessage))
+                {
+                    <div class="alert alert-info py-2 px-3 small mb-3" role="alert" style="white-space: pre-line;">
+                        @infoMessage
+                    </div>
+                }
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mt-2" disabled="@procesando">
+                    @if (procesando)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span>Verificando...</span>
+                    }
+                    else
+                    {
+                        <span>Iniciar Sesión</span>
+                    }
+                </button>
+            </EditForm>
+        </div>
+    </div>
+</div>
+@code {
+    private LoginModel loginModel = new();
+    private string? errorMessage;
+    private string? infoMessage;
+    private bool procesando;
+    private async Task HandleLogin()
+    {
+        errorMessage = null;
+        infoMessage = null;
+        if (string.IsNullOrWhiteSpace(loginModel.Usuario) || string.IsNullOrWhiteSpace(loginModel.Contrasena))
+        {
+            errorMessage = "Por favor, ingrese su usuario y contraseña.";
+            return;
+        }
+        procesando = true;
+        try
+        {
+            // 1. Obtener los usuarios de la base de datos vía API
+            var usuarios = await ApiService.ObtenerUsuariosAsync();
+            if (usuarios == null || !usuarios.Any())
+            {
+                errorMessage = "No se encontraron usuarios en la base de datos o la API no devolvió registros.\nVerifique que la API (SmartParkApi) esté corriendo y que la tabla 'Usuario' tenga datos.";
+                return;
+            }
+            // 2. Buscar si el usuario existe (ignora mayúsculas/minúsculas y espacios laterales)
+            var usuarioEncontrado = usuarios.FirstOrDefault(u =>
+                !string.IsNullOrWhiteSpace(u.NombreUsuario) &&
+                u.NombreUsuario.Trim().Equals(loginModel.Usuario.Trim(), StringComparison.OrdinalIgnoreCase)
+            );
+            if (usuarioEncontrado == null)
+            {
+                var nombresDisponibles = string.Join(", ", usuarios
+                    .Where(u => !string.IsNullOrWhiteSpace(u.NombreUsuario))
+                    .Select(u => $"'{u.NombreUsuario?.Trim()}'"));
+                errorMessage = $"El usuario '{loginModel.Usuario}' no existe en el sistema.\nUsuarios registrados en la BD: [{nombresDisponibles}]";
+                return;
+            }
+            // 3. Verificar si el usuario está activo
+            if (!usuarioEncontrado.Activo)
+            {
+                errorMessage = $"El usuario '{usuarioEncontrado.NombreUsuario}' existe pero está inactivo (Activo = false).";
+                return;
+            }
+            // 4. Validar contraseña (quitando espacios accidentales en ambos lados)
+            var passBd = usuarioEncontrado.ContrasenaHash?.Trim() ?? string.Empty;
+            var passIngresado = loginModel.Contrasena.Trim();
+            if (passBd != passIngresado)
+            {
+                errorMessage = "La contraseña es incorrecta.";
+                return;
+            }
+            // 5. ¡Credenciales válidas! Redirigir al menú principal
+            Navigation.NavigateTo("/menu", forceLoad: true);
+        }
+        catch (HttpRequestException httpEx)
+        {
+            errorMessage = $"No se pudo conectar con la API (https://localhost:7003).\nAsegúrese de que el proyecto SmartParkApi esté iniciado.\nDetalle: {httpEx.Message}";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al intentar iniciar sesión: {ex.Message}";
+        }
+        finally
+        {
+            procesando = false;
+        }
+    }
+    public class LoginModel
+    {
+        public string Usuario { get; set; } = string.Empty;
+        public string Contrasena { get; set; } = string.Empty;
+    }
+}
